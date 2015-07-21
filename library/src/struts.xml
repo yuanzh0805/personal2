@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts PUBLIC
+	"-//Apache Software Foundation//DTD Struts Configuration 2.3//EN"
+    "http://struts.apache.org/dtds/struts-2.3.dtd">
+<struts>
+
+	<!-- 使用Spring -->
+	<constant name="struts.i18n.encoding" value="utf8"></constant>
+	<constant name="struts.objectFactory" value="spring" />
+	<constant name="struts.devMode" value="false" />
+	<constant name="struts.configuration.xml.reload" value="true" />
+	<constant name="struts.action.extension" value="do,action"></constant>
+    <constant name="struts.multipart.maxSize" value="104857600"></constant>
+
+
+<package name="default" namespace="/" extends="struts-default">	
+	
+	<interceptors>
+		<!-- 使用权限拦截 -->
+		<interceptor name="authority" class="cn.sdu.interceptor.AuthorityInterceptor"/>
+		<!-- 异常拦截 -->
+		<interceptor name="exceptionInterceptor" class="cn.sdu.interceptor.ExceptionInterceptor"/>
+		<!-- 解决struts安全漏洞，拦截所有的带有#号的url -->
+		<interceptor-stack name="baseStack">
+			<interceptor-ref name="authority"/>
+			<!-- <interceptor-ref name="exceptionInterceptor"/>-->
+			<interceptor-ref name="params">   
+				<param name="excludeParams">.*\\u0023.*</param>   
+			</interceptor-ref>
+			<interceptor-ref name="defaultStack"/>
+		</interceptor-stack>
+	</interceptors>
+	<!-- 配置默认拦截器栈 -->
+	<default-interceptor-ref name="baseStack"/>
+	
+	<global-results>
+			<result name="login">/user/login.jsp</result>
+			<result name="error">/err.jsp</result>
+	</global-results>
+	
+	<action name="regist" class="cn.sdu.action.UserAction" method="regist">
+		<result name="registok" type="redirect">/index.jsp</result>
+	</action>
+		
+	<action name="login" class="cn.sdu.action.UserAction" method="login">
+		<result name="loginok" type="redirect">/index.jsp</result>
+		<result name="login" >/user/login.jsp</result>
+	</action>	
+	
+	<action name="loginout" class="cn.sdu.action.UserAction" method="loginOut">
+		<result name="loginout" type="redirect">/index.jsp</result>
+	</action>
+	
+	<action name="upfile" class="cn.sdu.action.FileAction" method="upfile">
+		<!-- 动态设置savePath的属性值 -->
+        <param name="savePath">/document</param>		
+		<interceptor-ref name="fileUpload">
+			<!-- 文件过滤 -->
+			<param name="allowedTypes">application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,
+			application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,
+			application/pdf,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet</param>
+			<!-- 文件大小, 以字节为单位 -->
+			<param name="maximumSize">1025956</param>
+		</interceptor-ref>
+		<!-- 默认拦截器必须放在fileUpload之后，否则无效 -->
+		<interceptor-ref name="defaultStack" />
+		<result name="upok" type="redirect">/ok.jsp</result>
+		<result name="err">err.jsp</result>
+	</action>
+	<action name="detailfile" class="cn.sdu.action.FileAction" method="detailfile">
+		<result name="ok">/FlexPaper/detailfile.jsp</result>
+	</action>
+	
+	
+	<action name="addLike" class="cn.sdu.action.LikeAction"/>
+	
+	<action name="addComment" class="cn.sdu.action.CommentAction" method="addComment">
+		<result name="ok">/ok.jsp</result>
+	</action>
+	
+	<action name="showComment" class="cn.sdu.action.CommentAction" method="showComment">
+	</action>		
+	
+	<action name="findByName" class="cn.sdu.action.FileAction" method="findByName">
+		<result name="findok" >/file/showfile.jsp</result>
+	</action>
+		
+	<action name="fileDownload" class="cn.sdu.action.FileAction">
+		<result name="success" type="stream">  
+			<param name="contentType">application/octet-stream</param>
+         	<param name="contentDisposition">attachment;fileName="${fileFileName }"</param> 
+           	<param name="inputName">downloadFile</param>
+           	<param name="bufferSize">1024</param>
+    	</result>  
+	</action>
+	
+	<action name="getType" class="cn.sdu.action.TypeAction"></action>
+	<action name="biaoqian" class="cn.sdu.action.BiaodocAction">
+		<result name="ok">/file/showfile.jsp</result>
+	</action>
+</package>
+</struts>

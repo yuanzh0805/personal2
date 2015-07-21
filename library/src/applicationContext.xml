@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop" 
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:dwr="http://www.directwebremoting.org/schema/spring-dwr"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+	http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+	http://www.springframework.org/schema/context 
+	http://www.springframework.org/schema/context/spring-context-3.2.xsd
+	http://www.springframework.org/schema/aop
+	http://www.springframework.org/schema/aop/spring-aop-3.2.xsd
+	http://www.springframework.org/schema/tx
+	http://www.springframework.org/schema/tx/spring-tx-3.2.xsd">
+
+	<!-- 启用注解扫描 -->
+	<context:annotation-config/>
+
+	<bean id="dataSource"
+		class="com.mchange.v2.c3p0.ComboPooledDataSource">
+		<property name="driverClass" value="com.mysql.jdbc.Driver"></property>
+		<property name="jdbcUrl"
+			value="jdbc:mysql://localhost:3306/library?useUnicode=true&amp;characterEncoding=utf-8">
+		</property>
+		<property name="maxIdleTime" value="25000"></property>
+		<property name="properties">		
+			<props>
+			<prop key="user">root</prop>
+			<prop key="password">123456</prop>
+			<prop key="c3p0.max_size">500</prop>
+			<prop key="c3p0.min_size">2</prop>
+			</props>
+		</property>
+	</bean>
+	<bean id="sessionFactory"
+		class="org.springframework.orm.hibernate4.LocalSessionFactoryBean">
+		<property name="dataSource" ref="dataSource" />
+		<property name="hibernateProperties">
+			<props>
+				<prop key="hibernate.dialect">org.hibernate.dialect.MySQLDialect</prop>
+				<prop key="hibernate.current_session_context_class">org.springframework.orm.hibernate4.SpringSessionContext</prop>
+				<prop key="hibernate.cache.region.factory_class">org.hibernate.cache.EhCacheRegionFactory</prop>
+				<prop key="hibernate.show_sql">true</prop>
+				<prop key="hibernate.format_sql">true</prop>
+				<prop key="hibernate.hbm2ddl.auto">update</prop>
+			</props>
+		</property>
+		<property name="mappingResources">
+			<list>
+				<value>cn/sdu/domain/Admin.hbm.xml</value>
+				<value>cn/sdu/domain/User.hbm.xml</value>
+				<value>cn/sdu/domain/Document.hbm.xml</value>
+				<value>cn/sdu/domain/Filedown.hbm.xml</value>
+				<value>cn/sdu/domain/Comment.hbm.xml</value>
+				<value>cn/sdu/domain/Type.hbm.xml</value>
+				<value>cn/sdu/domain/Like.hbm.xml</value>
+				<value>cn/sdu/domain/Biaoqian.hbm.xml</value>
+				<value>cn/sdu/domain/Biaodoc.hbm.xml</value></list>
+		</property>
+		<property name="packagesToScan">
+			<list>
+				<value>cn.sdu.domain</value>
+			</list>
+		</property>
+	</bean>
+	<!-- cglib代理开启  -->
+	 <bean id="cacheAop" class="cn.sdu.springAop.CacheAop">  
+	</bean>  
+	
+	<aop:aspectj-autoproxy proxy-target-class="true"/>   
+	<aop:config>    
+    	<aop:aspect id="myAspect" ref="cacheAop">  
+        	<aop:pointcut id="businessService" expression="execution(* cn.sdu.service.impl.biaodoc.BiaodocServiceImpl.*(..))" />  
+        	<aop:around pointcut-ref="businessService" method="around" />  
+    	</aop:aspect>  
+  
+	</aop:config>
+	
+ 	<!-- <aop:aspectj-autoproxy />代理 -->
+	<!-- 定义事务管理器 -->
+ 	<bean id="txManager"  class="org.springframework.orm.hibernate4.HibernateTransactionManager">
+  		<property name="sessionFactory" ref="sessionFactory" />
+ 	</bean>
+ 	<!-- 申明annotation 加载事务驱动 -->
+	<tx:annotation-driven transaction-manager="txManager" proxy-target-class="true"/>
+	<tx:advice id="txAdvice" transaction-manager="txManager">
+        <tx:attributes>
+            <tx:method name="save*" propagation="REQUIRED" />
+            <tx:method name="add*" propagation="REQUIRED" />
+            <tx:method name="create*" propagation="REQUIRED" />
+            <tx:method name="insert*" propagation="REQUIRED" />
+            <tx:method name="update*" propagation="REQUIRED" read-only="false"/>
+            <tx:method name="delete*" propagation="REQUIRED" read-only="false"/>
+            <tx:method name="merge*" propagation="REQUIRED" />
+            <tx:method name="del*" propagation="REQUIRED" />
+            <tx:method name="remove*" propagation="REQUIRED" />
+            <tx:method name="put*" propagation="REQUIRED" />
+            <tx:method name="use*" propagation="REQUIRED"/>
+
+            <!--hibernate4必须配置为开启事务 否则 getCurrentSession()获取不到-->
+            <tx:method name="get*" propagation="REQUIRED" read-only="true" />
+            <tx:method name="count*" propagation="REQUIRED" read-only="true" />
+
+            <tx:method name="find*" propagation="REQUIRED" read-only="true" />
+            <tx:method name="list*" propagation="REQUIRED" read-only="true" />
+
+            <tx:method name="*" read-only="true" />
+        </tx:attributes>
+    </tx:advice>
+    <aop:config expose-proxy="true">
+        <!-- 只对业务逻辑层实施事务 -->
+        <aop:pointcut id="txPointcut" expression="execution(* cn.sdu..service..*.*(..))" />
+        <aop:advisor advice-ref="txAdvice" pointcut-ref="txPointcut"/>
+    </aop:config>
+    
+	<bean name="user" class="cn.sdu.domain.User"/>
+	<bean name="userServiceImpl" class="cn.sdu.service.impl.user.UserServiceImpl"/>
+	<bean name="document" class="cn.sdu.domain.Document"/>
+	<bean name="documentServiceImpl" class="cn.sdu.service.impl.document.DocumentServiceImpl"/>
+	<bean name="type" class="cn.sdu.domain.Type"/>
+	<bean name="typeServiceImpl" class="cn.sdu.service.impl.type.TypeServiceImpl"/>
+	<bean name="like" class="cn.sdu.domain.Like"/>
+	<bean name="likeServiceImpl" class="cn.sdu.service.impl.like.LikeServiceImpl"/>
+	<bean name="comment" class="cn.sdu.domain.Comment"/>
+	<bean name="commentServiceImpl" class="cn.sdu.service.impl.comment.CommentServiceImpl"/>
+	<bean name="biaoqian" class="cn.sdu.domain.Biaoqian"/>
+	<bean name="biaoqianServiceImpl" class="cn.sdu.service.impl.biaoqian.BiaoqianServiceImpl"/>
+	<bean name="biaodoc" class="cn.sdu.domain.Biaodoc"/>
+	<bean name="biaodocServiceImpl" class="cn.sdu.service.impl.biaodoc.BiaodocServiceImpl"/>
+	<bean name="filedownServiceImpl" class="cn.sdu.service.impl.filedown.FiledownServiceImpl"/>
+	
+	<!-- 自动扫描包 -->
+	
+ 	<!-- <context:annotation-config /> <context:component-scan base-package="cn.sdu.*" annotation-config="true"/> -->
+</beans>
